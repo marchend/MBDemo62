@@ -35,10 +35,16 @@ final class KeychainStoreTests: XCTestCase {
         }
 
         /// Build a `KeychainStore.SecItemAPI` whose four closures
-        /// capture `self` so all calls share the same in-memory dict.
+        /// capture `self` strongly so the returned `SecItemAPI` keeps
+        /// the stub alive for its own lifetime.  There is no
+        /// back-reference from `StubKeychain` to the `SecItemAPI`, so
+        /// strong capture does not create a retain cycle — and it
+        /// avoids the dangling-`unowned` crash that occurred when
+        /// callers (e.g. `AuthServiceTests`) discarded the stub after
+        /// constructing a `KeychainStore` from it.
         func makeAPI() -> KeychainStore.SecItemAPI {
             KeychainStore.SecItemAPI(
-                add: { [unowned self] query, _ in
+                add: { query, _ in
                     let dict    = query as NSDictionary
                     let account = Self.account(from: query)
                     guard self.storage[account] == nil else {
@@ -50,7 +56,7 @@ final class KeychainStoreTests: XCTestCase {
                     self.storage[account] = data
                     return errSecSuccess
                 },
-                copyMatching: { [unowned self] query, result in
+                copyMatching: { query, result in
                     let account = Self.account(from: query)
                     guard let data = self.storage[account] else {
                         return errSecItemNotFound
@@ -58,7 +64,7 @@ final class KeychainStoreTests: XCTestCase {
                     result?.pointee = data as CFTypeRef
                     return errSecSuccess
                 },
-                update: { [unowned self] query, attributes in
+                update: { query, attributes in
                     let account = Self.account(from: query)
                     guard self.storage[account] != nil else {
                         return errSecItemNotFound
@@ -70,7 +76,7 @@ final class KeychainStoreTests: XCTestCase {
                     self.storage[account] = data
                     return errSecSuccess
                 },
-                delete: { [unowned self] query in
+                delete: { query in
                     let account = Self.account(from: query)
                     self.storage.removeValue(forKey: account)
                     return errSecSuccess
