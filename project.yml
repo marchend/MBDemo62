@@ -26,10 +26,20 @@ targets:
     sources: [AcmeBankTests]
     dependencies:
       - target: AcmeBank
+  AcmeBankUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources: [AcmeBankUITests]
+    dependencies:
+      - target: AcmeBank
+    settings:
+      base:
+        CODE_SIGNING_ALLOWED: "NO"
+        CODE_SIGNING_REQUIRED: "NO"
 schemes:
   AcmeBank:
     build:
       targets: { AcmeBank: all }
     test:
-      targets: [AcmeBankTests]
+      targets: [AcmeBankTests, AcmeBankUITests]
       parallelizable: false

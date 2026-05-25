@@ -1,7 +1,7 @@
 # AcmeBank — Project Context
 
 ## Overview
-AcmeBank is an iOS banking app (iOS 17+, Swift 5.10, SwiftUI) that lets customers view accounts and transactions, initiate transfers, pay bills, and manage their profile — secured by Okta OIDC. This repository currently contains the Hello-World bootstrap scaffold; all feature work follows in subsequent PRs.
+AcmeBank is an iOS banking app (iOS 17+, Swift 5.10, SwiftUI) that lets customers view accounts and transactions, initiate transfers, pay bills, and manage their profile — secured by Okta OIDC. The Login screen UI + ViewModel is shipped; all subsequent feature screens follow in later PRs.
 
 ## Tech Stack
 | Concern | Choice |
@@ -38,12 +38,13 @@ xcodebuild test \
 ```
 AcmeBank/                      ← app source root (XcodeGen glob picks up all .swift)
   App/
-    AcmeBankApp.swift          ← @main SwiftUI entry (implemented)
-  ContentView.swift            ← Hello World placeholder (implemented)
+    AcmeBankApp.swift          ← @main SwiftUI entry — presents LoginView on launch (implemented)
+  ContentView.swift            ← Hello World placeholder (superseded; kept for bootstrap test ref)
   AcmeBank.entitlements        ← keychain-access-groups stub (implemented)
   PrivacyInfo.xcprivacy        ← required-reason API manifest (implemented)
   Resources/
     Assets.xcassets/           ← asset catalog with stub AppIcon (implemented)
+  Features/Login/              ← LoginView, LoginViewModel, LoginView+Accessibility (implemented)
   Core/Auth/                   ← AuthService, KeychainStore, UserSession (deferred)
   Core/Networking/             ← APIClient, APIRouter, APIError, RequestInterceptor (deferred)
   Core/Notifications/          ← AppNotification, NotificationPublisher (deferred)
@@ -52,7 +53,6 @@ AcmeBank/                      ← app source root (XcodeGen glob picks up all .
   Domain/Repositories/         ← protocol-only repository interfaces (deferred)
   Data/Remote/                 ← APIRepository implementations (deferred)
   Data/Mock/                   ← MockRepository implementations (deferred)
-  Features/Login/              ← LoginView, LoginViewModel, LoginCoordinator (deferred)
   Features/Home/               ← HomeView, HomeViewModel, HomeCoordinator (deferred)
   Features/Accounts/           ← (deferred)
   Features/Transfer/           ← (deferred)
@@ -60,8 +60,10 @@ AcmeBank/                      ← app source root (XcodeGen glob picks up all .
   DesignSystem/                ← Colors.swift, Typography.swift (deferred)
 AcmeBankTests/
   AcmeBankTests.swift          ← bootstrap smoke test (implemented)
-AcmeBankUITests/               ← XCUITest target; created when first critical-flow story ships (deferred)
-project.yml                    ← XcodeGen spec (implemented)
+  LoginViewModelTests.swift    ← LoginViewModel unit tests (implemented)
+AcmeBankUITests/               ← XCUITest target (implemented — login smoke tests)
+  LoginScreenUITests.swift     ← login screen reachability + field/button presence (implemented)
+project.yml                    ← XcodeGen spec (implemented; includes AcmeBankUITests target)
 setup.sh                       ← one-shot project materialisation (implemented)
 ```
 
@@ -109,10 +111,10 @@ var query: [String: Any] = [
 - Networking layer (`APIClient`, `APIRouter`, `APIError`, `RequestInterceptor`) — future PR
 - Domain models (`Account`, `Transaction`, `Customer`, `TransferRequest`) — future PR
 - Repository protocols + mock/remote implementations — future PR
-- Feature screens (Login, Home, Accounts, Transfer, Cards, More) — future PR
+- Feature screens (Home, Accounts, Transfer, Cards, More) — future PR
 - Design system tokens (`Colors.swift`, `Typography.swift`) — future PR
 - Internal notifications (`AppNotification`, `NotificationPublisher`) — future PR
-- XCUITest target (`AcmeBankUITests/`) — future PR (when login story ships)
+- Login → real Okta auth wiring (replace stub `signIn` closure) — future PR
 - SwiftLint (`.swiftlint.yml`) — future PR
 - CI workflow (`ios-build.yml`, xcconfig injection, `API_BASE_URL`) — future PR
 - `Localizable.strings`, `Okta.plist.example`, extensions — future PR
