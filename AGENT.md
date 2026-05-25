@@ -1,7 +1,7 @@
 # AcmeBank — Project Context
 
 ## Overview
-AcmeBank is an iOS banking app (iOS 17+, Swift 5.10, SwiftUI) that lets customers view accounts and transactions, initiate transfers, pay bills, and manage their profile — secured by Okta OIDC. The Login screen UI + ViewModel is shipped; all subsequent feature screens follow in later PRs.
+AcmeBank is an iOS banking app (iOS 17+, Swift 5.10, SwiftUI) that lets customers view accounts and transactions, initiate transfers, pay bills, and manage their profile — secured by Okta OIDC. The Login screen + post-auth Landing screen are shipped; subsequent feature screens (Home, Accounts, Transfer, Cards) follow in later PRs.
 
 ## Tech Stack
 | Concern | Choice |
@@ -38,13 +38,14 @@ xcodebuild test \
 ```
 AcmeBank/                      ← app source root (XcodeGen glob picks up all .swift)
   App/
-    AcmeBankApp.swift          ← @main SwiftUI entry — presents LoginView on launch (implemented)
+    AcmeBankApp.swift          ← @main SwiftUI entry — switches LoginView ↔ LandingView on `LoginViewModel.session` (implemented)
   ContentView.swift            ← Hello World placeholder (superseded; kept for bootstrap test ref)
   AcmeBank.entitlements        ← keychain-access-groups stub (implemented)
   PrivacyInfo.xcprivacy        ← required-reason API manifest (implemented)
   Resources/
     Assets.xcassets/           ← asset catalog with stub AppIcon (implemented)
   Features/Login/              ← LoginView, LoginViewModel, LoginView+Accessibility (implemented)
+  Features/Landing/            ← LandingView — post-auth "Welcome, {name}" + email from UserSession (implemented)
   Core/Auth/                   ← OktaConfig (implemented); AuthService, KeychainStore, UserSession (deferred)
   Core/Networking/             ← APIClient, APIRouter, APIError, RequestInterceptor (deferred)
   Core/Notifications/          ← AppNotification, NotificationPublisher (deferred)
@@ -61,15 +62,18 @@ AcmeBank/                      ← app source root (XcodeGen glob picks up all .
 AcmeBankTests/
   AcmeBankTests.swift          ← bootstrap smoke test (implemented)
   LoginViewModelTests.swift    ← LoginViewModel unit tests (implemented)
+  LandingViewTests.swift       ← LandingView render / claim-projection tests (implemented)
   OktaConfigTests.swift        ← OktaConfig parsing / sentinel detection (implemented)
-AcmeBankUITests/               ← XCUITest target (implemented — login smoke tests)
-  LoginScreenUITests.swift     ← login screen reachability + field/button presence (implemented)
+AcmeBankUITests/               ← XCUITest target (implemented — login smoke tests + end-to-end Landing)
+  LoginScreenUITests.swift     ← login screen reachability + field/button presence + unconfigured-banner + (gated) end-to-end sign-in (implemented)
 project.yml                    ← XcodeGen spec (implemented; includes AcmeBankUITests target + Okta SPM + Info.plist inject script)
 setup.sh                       ← one-shot project materialisation (implemented)
 ```
 
 ## Okta build configuration
 Okta tenant values come from **build-machine env vars only** — never commit `Okta.plist`, `.xcconfig`, or `.env`. A `postBuildScripts` phase in `project.yml` writes `OKTA_ISSUER` / `OKTA_CLIENT_ID` / `OKTA_REDIRECT_URI` / `OKTA_SCOPES` (or the sentinel `OKTA_NOT_CONFIGURED` when an env var is unset) into the bundled `Info.plist` via `plutil -replace`. Missing env vars NEVER hard-fail the build — `OktaConfig.load()` returns `.notConfigured(reason:)` at runtime. See `README.md` for the three env-var setup methods (`launchctl setenv`, `export` + `xed .`, per-command on `xcodebuild`) and the `PhaseScriptExecution` subshell caveat that drives the CI form.
+
+The end-to-end XCUITest (`test_signIn_navigatesToLanding`) additionally reads `OKTA_TEST_USERNAME` / `OKTA_TEST_PASSWORD` for the test-tenant credentials, and `XCTSkip`s when `OKTA_ISSUER` (or either credential) is unset — so a fresh CI clone with zero env vars still passes the suite.
 
 ## Planned Architecture
 
@@ -110,7 +114,6 @@ var query: [String: Any] = [
 `DesignSystem/Typography.swift` — `Font.acmeTitle`, `.acmeHeadline`, etc. All sizes paired with Dynamic Type relative styles.
 
 ## Deferred Work
-- Okta OIDC auth (`AuthService`, `KeychainStore`, `UserSession`) — future PR
 - MVVM + Coordinator scaffold (`AppCoordinator`, `RootView`, coordinators) — future PR
 - Networking layer (`APIClient`, `APIRouter`, `APIError`, `RequestInterceptor`) — future PR
 - Domain models (`Account`, `Transaction`, `Customer`, `TransferRequest`) — future PR
@@ -118,7 +121,6 @@ var query: [String: Any] = [
 - Feature screens (Home, Accounts, Transfer, Cards, More) — future PR
 - Design system tokens (`Colors.swift`, `Typography.swift`) — future PR
 - Internal notifications (`AppNotification`, `NotificationPublisher`) — future PR
-- Login → real Okta auth wiring (replace stub `signIn` closure) — future PR
 - SwiftLint (`.swiftlint.yml`) — future PR
 - CI workflow (`ios-build.yml`, xcconfig injection, `API_BASE_URL`) — future PR
 - `Localizable.strings`, extensions — future PR
