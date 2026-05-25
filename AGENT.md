@@ -45,7 +45,7 @@ AcmeBank/                      ← app source root (XcodeGen glob picks up all .
   Resources/
     Assets.xcassets/           ← asset catalog with stub AppIcon (implemented)
   Features/Login/              ← LoginView, LoginViewModel, LoginView+Accessibility (implemented)
-  Core/Auth/                   ← AuthService, KeychainStore, UserSession (deferred)
+  Core/Auth/                   ← OktaConfig (implemented); AuthService, KeychainStore, UserSession (deferred)
   Core/Networking/             ← APIClient, APIRouter, APIError, RequestInterceptor (deferred)
   Core/Notifications/          ← AppNotification, NotificationPublisher (deferred)
   Core/Extensions/             ← Decimal+Currency, Date+Greeting, String+Initials (deferred)
@@ -61,11 +61,15 @@ AcmeBank/                      ← app source root (XcodeGen glob picks up all .
 AcmeBankTests/
   AcmeBankTests.swift          ← bootstrap smoke test (implemented)
   LoginViewModelTests.swift    ← LoginViewModel unit tests (implemented)
+  OktaConfigTests.swift        ← OktaConfig parsing / sentinel detection (implemented)
 AcmeBankUITests/               ← XCUITest target (implemented — login smoke tests)
   LoginScreenUITests.swift     ← login screen reachability + field/button presence (implemented)
-project.yml                    ← XcodeGen spec (implemented; includes AcmeBankUITests target)
+project.yml                    ← XcodeGen spec (implemented; includes AcmeBankUITests target + Okta SPM + Info.plist inject script)
 setup.sh                       ← one-shot project materialisation (implemented)
 ```
+
+## Okta build configuration
+Okta tenant values come from **build-machine env vars only** — never commit `Okta.plist`, `.xcconfig`, or `.env`. A `postBuildScripts` phase in `project.yml` writes `OKTA_ISSUER` / `OKTA_CLIENT_ID` / `OKTA_REDIRECT_URI` / `OKTA_SCOPES` (or the sentinel `OKTA_NOT_CONFIGURED` when an env var is unset) into the bundled `Info.plist` via `plutil -replace`. Missing env vars NEVER hard-fail the build — `OktaConfig.load()` returns `.notConfigured(reason:)` at runtime. See `README.md` for the three env-var setup methods (`launchctl setenv`, `export` + `xed .`, per-command on `xcodebuild`) and the `PhaseScriptExecution` subshell caveat that drives the CI form.
 
 ## Planned Architecture
 
@@ -106,7 +110,7 @@ var query: [String: Any] = [
 `DesignSystem/Typography.swift` — `Font.acmeTitle`, `.acmeHeadline`, etc. All sizes paired with Dynamic Type relative styles.
 
 ## Deferred Work
-- Okta OIDC auth (`AuthService`, `KeychainStore`, `UserSession`, `Okta.plist`) — future PR
+- Okta OIDC auth (`AuthService`, `KeychainStore`, `UserSession`) — future PR
 - MVVM + Coordinator scaffold (`AppCoordinator`, `RootView`, coordinators) — future PR
 - Networking layer (`APIClient`, `APIRouter`, `APIError`, `RequestInterceptor`) — future PR
 - Domain models (`Account`, `Transaction`, `Customer`, `TransferRequest`) — future PR
@@ -117,7 +121,7 @@ var query: [String: Any] = [
 - Login → real Okta auth wiring (replace stub `signIn` closure) — future PR
 - SwiftLint (`.swiftlint.yml`) — future PR
 - CI workflow (`ios-build.yml`, xcconfig injection, `API_BASE_URL`) — future PR
-- `Localizable.strings`, `Okta.plist.example`, extensions — future PR
+- `Localizable.strings`, extensions — future PR
 
 ## Git Workflow
 
