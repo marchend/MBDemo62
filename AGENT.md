@@ -38,15 +38,15 @@ xcodebuild test \
 ```
 AcmeBank/                      ← app source root (XcodeGen glob picks up all .swift)
   App/
-    AcmeBankApp.swift          ← @main SwiftUI entry — switches LoginView ↔ LandingView on `LoginViewModel.session` (implemented)
+    AcmeBankApp.swift          ← @main SwiftUI entry — owns ThemeStore + LoginViewModel; switches LoginView ↔ LandingView on `LoginViewModel.session` (implemented)
   ContentView.swift            ← Hello World placeholder (superseded; kept for bootstrap test ref)
   AcmeBank.entitlements        ← keychain-access-groups stub (implemented)
   PrivacyInfo.xcprivacy        ← required-reason API manifest (implemented)
   Resources/
-    Assets.xcassets/           ← asset catalog with stub AppIcon (implemented)
-  Features/Login/              ← LoginView, LoginViewModel, LoginView+Accessibility (implemented)
-  Features/Landing/            ← LandingView — post-auth "Welcome, {name}" + email from UserSession (implemented)
-  Core/Auth/                   ← OktaConfig (implemented); AuthService, KeychainStore, UserSession (deferred)
+    Assets.xcassets/           ← asset catalog with AppIcon + BrandNavy (#1B2A4A) color asset (implemented)
+  Features/Login/              ← LoginView (with ThemeToggleButton in branding strip + Color("BrandNavy") tint), LoginViewModel, LoginView+Accessibility (implemented)
+  Features/Landing/            ← LandingView — post-auth "Welcome, {name}" + email + ThemeToggleButton overlay (implemented)
+  Core/Auth/                   ← OktaConfig (implemented); AuthService, KeychainStore, UserSession (implemented)
   Core/Networking/             ← APIClient, APIRouter, APIError, RequestInterceptor (deferred)
   Core/Notifications/          ← AppNotification, NotificationPublisher (deferred)
   Core/Extensions/             ← Decimal+Currency, Date+Greeting, String+Initials (deferred)
@@ -58,17 +58,29 @@ AcmeBank/                      ← app source root (XcodeGen glob picks up all .
   Features/Accounts/           ← (deferred)
   Features/Transfer/           ← (deferred)
   Features/Cards/              ← (deferred)
-  DesignSystem/                ← Colors.swift, Typography.swift (deferred)
+  DesignSystem/                ← ThemeStore (ObservableObject; .light/.dark toggle), ThemeToggleButton (sun.max/moon.fill; 44pt; env-obj) (implemented); Colors.swift, Typography.swift (deferred)
 AcmeBankTests/
   AcmeBankTests.swift          ← bootstrap smoke test (implemented)
   LoginViewModelTests.swift    ← LoginViewModel unit tests (implemented)
-  LandingViewTests.swift       ← LandingView render / claim-projection tests (implemented)
+  LandingViewTests.swift       ← LandingView render / claim-projection tests — injects ThemeStore for render calls (implemented)
   OktaConfigTests.swift        ← OktaConfig parsing / sentinel detection (implemented)
+  DesignSystem/
+    ThemeStoreTests.swift      ← ThemeStore unit tests (implemented)
+    ThemeToggleButtonTests.swift ← ThemeToggleButton symbol/a11y/render tests (implemented)
+  Features/Login/
+    LoginViewDarkModeTests.swift ← LoginView dark-mode integration tests (implemented)
+  Features/Landing/
+    LandingViewDarkModeTests.swift ← LandingView dark-mode integration tests (implemented)
 AcmeBankUITests/               ← XCUITest target (implemented — login smoke tests + end-to-end Landing)
   LoginScreenUITests.swift     ← login screen reachability + field/button presence + unconfigured-banner + (gated) end-to-end sign-in (implemented)
 project.yml                    ← XcodeGen spec (implemented; includes AcmeBankUITests target + Okta SPM + Info.plist inject script)
 setup.sh                       ← one-shot project materialisation (implemented)
 ```
+
+## Theme / Dark Mode
+`ThemeStore` is created once in `AcmeBankApp` as `@StateObject` and injected via `.environmentObject(themeStore)` on the root `RootView`. `.preferredColorScheme(themeStore.preferredColorScheme)` is applied at the same level so toggling carries through the whole app. Every view that embeds `ThemeToggleButton` **must** have `ThemeStore` in its environment — render tests inject it via `.environmentObject(ThemeStore())`.
+
+`BrandNavy` (#1B2A4A) is defined in `Resources/Assets.xcassets/BrandNavy.colorset/` for both Any and Dark appearances. Use `Color("BrandNavy")` — never hardcode the hex literal.
 
 ## Okta build configuration
 Okta tenant values come from **build-machine env vars only** — never commit `Okta.plist`, `.xcconfig`, or `.env`. A `postBuildScripts` phase in `project.yml` writes `OKTA_ISSUER` / `OKTA_CLIENT_ID` / `OKTA_REDIRECT_URI` / `OKTA_SCOPES` (or the sentinel `OKTA_NOT_CONFIGURED` when an env var is unset) into the bundled `Info.plist` via `plutil -replace`. Missing env vars NEVER hard-fail the build — `OktaConfig.load()` returns `.notConfigured(reason:)` at runtime. See `README.md` for the three env-var setup methods (`launchctl setenv`, `export` + `xed .`, per-command on `xcodebuild`) and the `PhaseScriptExecution` subshell caveat that drives the CI form.
@@ -109,12 +121,14 @@ var query: [String: Any] = [
 ### Networking (deferred — future PR)
 `APIClient` wraps `URLSession` with `JSONDecoder` (`.convertFromSnakeCase`, `.iso8601`). HTTP 401 posts `AppNotification.sessionExpired`. `API_BASE_URL` injected via xcconfig; never hardcoded.
 
-### Design System (deferred — future PR)
-`DesignSystem/Colors.swift` — `Color.acmeNavy`, `.acmeBackground`, etc.
-`DesignSystem/Typography.swift` — `Font.acmeTitle`, `.acmeHeadline`, etc. All sizes paired with Dynamic Type relative styles.
+### Design System (partial — ThemeStore + ThemeToggleButton implemented; tokens deferred)
+`DesignSystem/ThemeStore.swift` — `ObservableObject`; `@Published var preferredColorScheme: ColorScheme = .light`; `toggle()` helper.
+`DesignSystem/ThemeToggleButton.swift` — reusable `View`; reads `ThemeStore` via `@EnvironmentObject`; `sun.max`/`moon.fill`; 44×44 pt frame.
+`DesignSystem/Colors.swift` — `Color.acmeNavy`, `.acmeBackground`, etc. (deferred)
+`DesignSystem/Typography.swift` — `Font.acmeTitle`, `.acmeHeadline`, etc. (deferred)
 
 ## Deferred Work
-- MVVM + Coordinator scaffold (`AppCoordinator`, `RootView`, coordinators) — future PR
+- MVVM + Coordinator scaffold (`AppCoordinator`, coordinators) — future PR
 - Networking layer (`APIClient`, `APIRouter`, `APIError`, `RequestInterceptor`) — future PR
 - Domain models (`Account`, `Transaction`, `Customer`, `TransferRequest`) — future PR
 - Repository protocols + mock/remote implementations — future PR

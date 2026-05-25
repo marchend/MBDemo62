@@ -8,6 +8,10 @@ import SwiftUI
 /// no network call here: every field is already in memory by the time
 /// the composition root presents this view.
 ///
+/// A `ThemeToggleButton` is placed in the top-trailing safe area via
+/// an `.overlay(alignment: .topTrailing)` so the user can switch
+/// colour scheme from the landing screen without navigating away.
+///
 /// Story scope: this is the entire content of the landing screen for
 /// now.  Real account / transaction widgets land in a later PR.
 struct LandingView: View {
@@ -34,6 +38,10 @@ struct LandingView: View {
         .padding(.horizontal, 24)
         .padding(.top, 64)
         .background(Color(.systemBackground))
+        .overlay(alignment: .topTrailing) {
+            ThemeToggleButton()
+                .padding(16)
+        }
     }
 }
 
@@ -65,4 +73,5 @@ enum LandingAccessibility {
             deviceName:    "Preview Device"
         )
     )
+    .environmentObject(ThemeStore())
 }
