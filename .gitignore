@@ -16,3 +16,10 @@ Pods/
 # Swift Package Manager
 .swiftpm/
 .build/
+
+# Okta tenant config — values come from build-machine env vars only.
+# Never commit committed-config variants of these.
+Okta.plist
+*.xcconfig
+.env
+.env.*
