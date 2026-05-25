@@ -18,6 +18,10 @@ import SwiftUI
 /// 2. Unicode display names (CJK + emoji + RTL) do not crash on render.
 /// 3. Pathologically long emails do not crash on render (no truncation
 ///    `fatalError`).
+///
+/// All `render` calls inject a `ThemeStore` environment object because
+/// `LandingView` now hosts a `ThemeToggleButton` overlay that reads
+/// from `@EnvironmentObject var themeStore: ThemeStore`.
 final class LandingViewTests: XCTestCase {
 
     // MARK: – Fixture
@@ -56,7 +60,7 @@ final class LandingViewTests: XCTestCase {
         XCTAssertEqual(view.session.displayName, "Marc Henderson")
         XCTAssertEqual(view.session.email,       "marc@example.com")
 
-        render(view)
+        render(view.environmentObject(ThemeStore()))
     }
 
     @MainActor
@@ -74,7 +78,7 @@ final class LandingViewTests: XCTestCase {
         for name in names {
             let view = LandingView(session: makeSession(displayName: name))
             XCTAssertEqual(view.session.displayName, name)
-            render(view)
+            render(view.environmentObject(ThemeStore()))
         }
     }
 
@@ -89,7 +93,7 @@ final class LandingViewTests: XCTestCase {
         let view = LandingView(session: makeSession(email: longEmail))
         XCTAssertEqual(view.session.email, longEmail)
 
-        render(view)
+        render(view.environmentObject(ThemeStore()))
     }
 
     // MARK: – Composition-root contract

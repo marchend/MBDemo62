@@ -5,6 +5,11 @@ import SwiftUI
 /// Renders the branding header, username / password fields, and a
 /// primary Sign In button.  All business logic lives in `LoginViewModel`;
 /// this view is a pure projection of that state.
+///
+/// `ThemeToggleButton` is placed in the branding strip so the user can
+/// switch colour scheme before and after signing in without leaving the
+/// screen.  The button reads `ThemeStore` from the environment (injected
+/// by `AcmeBankApp`).
 struct LoginView: View {
 
     @ObservedObject var viewModel: LoginViewModel
@@ -27,10 +32,18 @@ struct LoginView: View {
 
     private var brandingHeader: some View {
         VStack(spacing: 8) {
-            Image(systemName: "building.columns.fill")
-                .font(.system(size: 56))
-                .foregroundStyle(Color.accentColor)
-                .accessibilityHidden(true)
+            // Branding strip: icon + theme toggle aligned trailing
+            HStack(alignment: .center) {
+                Image(systemName: "building.columns.fill")
+                    .font(.system(size: 56))
+                    .foregroundStyle(Color("BrandNavy"))
+                    .accessibilityHidden(true)
+
+                Spacer()
+
+                ThemeToggleButton()
+                    .foregroundStyle(Color("BrandNavy"))
+            }
 
             Text("Acme Bank")
                 .font(.largeTitle)
@@ -41,6 +54,10 @@ struct LoginView: View {
 
             Text("Sign in to your account")
                 .font(.subheadline)
+                .foregroundStyle(Color.secondary)
+
+            Text("Secured by Okta")
+                .font(.caption)
                 .foregroundStyle(Color.secondary)
         }
     }
@@ -89,7 +106,7 @@ struct LoginView: View {
             Group {
                 if viewModel.isLoading {
                     ProgressView()
-                        .tint(.white)
+                        .tint(Color.white)
                 } else {
                     Text("Sign In")
                         .font(.body)
@@ -98,6 +115,7 @@ struct LoginView: View {
             }
             .frame(maxWidth: .infinity, minHeight: 50)
         }
+        .tint(Color("BrandNavy"))
         .buttonStyle(.borderedProminent)
         .disabled(viewModel.isLoading)
         .accessibilityLabel("Sign In")
@@ -129,4 +147,5 @@ struct LoginView: View {
 
 #Preview {
     LoginView(viewModel: LoginViewModel())
+        .environmentObject(ThemeStore())
 }
