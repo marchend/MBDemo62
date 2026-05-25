@@ -177,13 +177,16 @@ public final class AuthService {
 
             // OktaDirectAuth 2.x takes scopes as a single
             // space-separated string, matching what Okta admins paste
-            // into env vars.
+            // into env vars. The SDK initializer is
+            // `init(issuerURL:clientId:scope:supportedGrants:additionalParameters:)`
+            // — note `issuerURL:` (not `issuer:`) and `scope:` (singular,
+            // not `scopes:`).
             let scopeString = scopes.joined(separator: " ")
 
             let flow = DirectAuthenticationFlow(
-                issuer:   issuer,
-                clientId: clientID,
-                scopes:   scopeString
+                issuerURL: issuer,
+                clientId:  clientID,
+                scope:     scopeString
             )
 
             let status = try await flow.start(username, with: .password(password))
